@@ -1,26 +1,47 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Wind, AlertTriangle, CheckCircle, TrendingUp } from "lucide-react";
+import { ArrowLeft, Wind, AlertTriangle, CheckCircle, TrendingUp, Loader2, Satellite } from "lucide-react";
 import { Link } from "react-router-dom";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { useState, useEffect } from "react";
+import { getAirQualityData, type AirQualityData } from "@/services/earthdataApi";
+import { Badge } from "@/components/ui/badge";
 
 const AirQuality = () => {
-  // Mock data for air quality monitoring
-  const airQualityData = [
-    { time: "00:00", pm25: 35, pm10: 45, no2: 28, o3: 42 },
-    { time: "04:00", pm25: 42, pm10: 52, no2: 32, o3: 38 },
-    { time: "08:00", pm25: 68, pm10: 82, no2: 58, o3: 35 },
-    { time: "12:00", pm25: 75, pm10: 95, no2: 65, o3: 62 },
-    { time: "16:00", pm25: 62, pm10: 78, no2: 52, o3: 58 },
-    { time: "20:00", pm25: 48, pm10: 58, no2: 38, o3: 45 },
-  ];
+  const [airQualityData, setAirQualityData] = useState<AirQualityData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentAQI, setCurrentAQI] = useState(0);
 
-  const currentMetrics = [
-    { label: "PM2.5", value: "48", unit: "µg/m³", status: "moderate", trend: "+5%" },
-    { label: "PM10", value: "58", unit: "µg/m³", status: "moderate", trend: "+3%" },
-    { label: "NO₂", value: "38", unit: "ppb", status: "good", trend: "-2%" },
-    { label: "O₃", value: "45", unit: "ppb", status: "good", trend: "+1%" },
-  ];
+  useEffect(() => {
+    loadAirQualityData();
+  }, []);
+
+  const loadAirQualityData = async () => {
+    setLoading(true);
+    const data = await getAirQualityData(14);
+    setAirQualityData(data);
+    if (data.length > 0) {
+      setCurrentAQI(data[data.length - 1].aqi);
+    }
+    setLoading(false);
+  };
+
+  const getAQIStatus = (aqi: number) => {
+    if (aqi <= 50) return { label: "Good", color: "bg-green-500", textColor: "text-green-500" };
+    if (aqi <= 100) return { label: "Moderate", color: "bg-yellow-500", textColor: "text-yellow-500" };
+    if (aqi <= 150) return { label: "Unhealthy for Sensitive Groups", color: "bg-orange-500", textColor: "text-orange-500" };
+    return { label: "Unhealthy", color: "bg-red-500", textColor: "text-red-500" };
+  };
+
+  const aqiStatus = getAQIStatus(currentAQI);
+  const latestData = airQualityData.length > 0 ? airQualityData[airQualityData.length - 1] : null;
+  
+  const currentMetrics = latestData ? [
+    { label: "PM2.5", value: latestData.pm25.toString(), unit: "µg/m³", status: latestData.pm25 < 35 ? "good" : "moderate" },
+    { label: "PM10", value: latestData.pm10.toString(), unit: "µg/m³", status: latestData.pm10 < 50 ? "good" : "moderate" },
+    { label: "NO₂", value: latestData.no2.toString(), unit: "ppb", status: latestData.no2 < 53 ? "good" : "moderate" },
+    { label: "O₃", value: latestData.o3.toString(), unit: "ppb", status: latestData.o3 < 55 ? "good" : "moderate" },
+  ] : [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -52,15 +73,29 @@ const AirQuality = () => {
                 Back to Home
               </Button>
             </Link>
-            <h1 className="text-4xl font-bold flex items-center gap-3">
-              <Wind className="w-10 h-10 text-primary" />
-              Air Quality Prediction
-            </h1>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-4xl font-bold flex items-center gap-3">
+                <Wind className="w-10 h-10 text-primary" />
+                Air Quality Prediction
+              </h1>
+              <Badge className={aqiStatus.color}>{aqiStatus.label}</Badge>
+              <Badge variant="outline" className="border-primary/30">
+                <Satellite className="w-3 h-3 mr-1" />
+                NASA Data
+              </Badge>
+            </div>
             <p className="text-muted-foreground">Real-time atmospheric monitoring and public health forecasting</p>
           </div>
         </div>
 
         {/* Current Metrics Grid */}
+        {loading ? (
+          <Card className="p-12 text-center bg-card/50 backdrop-blur-sm">
+            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading air quality data...</p>
+          </Card>
+        ) : (
+          <>
         <div className="grid md:grid-cols-4 gap-6">
           {currentMetrics.map((metric, index) => (
             <Card key={index} className={`p-6 ${getStatusBg(metric.status)} border`}>
@@ -73,10 +108,6 @@ const AirQuality = () => {
                 <div className="flex items-center justify-between">
                   <span className={`text-sm font-medium capitalize ${getStatusColor(metric.status)}`}>
                     {metric.status}
-                  </span>
-                  <span className="text-sm text-muted-foreground flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3" />
-                    {metric.trend}
                   </span>
                 </div>
               </div>
@@ -110,35 +141,37 @@ const AirQuality = () => {
                 }}
               />
               <Legend />
-              <Area type="monotone" dataKey="pm25" stroke="hsl(189 94% 55%)" fillOpacity={1} fill="url(#colorPM25)" name="PM2.5" />
-              <Area type="monotone" dataKey="pm10" stroke="hsl(280 80% 60%)" fillOpacity={1} fill="url(#colorPM10)" name="PM10" />
-              <Line type="monotone" dataKey="no2" stroke="hsl(120 60% 50%)" name="NO₂" />
-              <Line type="monotone" dataKey="o3" stroke="hsl(45 90% 60%)" name="O₃" />
+              <Area type="monotone" dataKey="pm25" stroke="hsl(189 94% 55%)" fillOpacity={1} fill="url(#colorPM25)" name="PM2.5 (µg/m³)" />
+              <Area type="monotone" dataKey="pm10" stroke="hsl(280 80% 60%)" fillOpacity={1} fill="url(#colorPM10)" name="PM10 (µg/m³)" />
+              <Line type="monotone" dataKey="no2" stroke="hsl(120 60% 50%)" name="NO₂ (ppb)" />
+              <Line type="monotone" dataKey="o3" stroke="hsl(45 90% 60%)" name="O₃ (ppb)" />
             </AreaChart>
           </ResponsiveContainer>
         </Card>
 
         {/* Alerts & Recommendations */}
         <div className="grid md:grid-cols-2 gap-6">
-          <Card className="p-6 bg-yellow-500/10 border-yellow-500/30">
+          <Card className={`p-6 ${aqiStatus.color}/10 border-${aqiStatus.color.split('-')[1]}-500/30`}>
             <div className="flex items-start gap-4">
-              <AlertTriangle className="w-6 h-6 text-yellow-500 flex-shrink-0 mt-1" />
+              <AlertTriangle className={`w-6 h-6 ${aqiStatus.textColor} flex-shrink-0 mt-1`} />
               <div className="space-y-2">
-                <h3 className="font-bold text-lg">Moderate Air Quality Alert</h3>
+                <h3 className="font-bold text-lg">{aqiStatus.label} Air Quality</h3>
                 <p className="text-sm text-muted-foreground">
-                  PM2.5 and PM10 levels are moderate. Sensitive groups should consider limiting prolonged outdoor activities.
+                  {currentAQI <= 50 && "Air quality is good. Enjoy outdoor activities!"}
+                  {currentAQI > 50 && currentAQI <= 100 && "Air quality is acceptable. Sensitive groups should consider limiting prolonged outdoor activities."}
+                  {currentAQI > 100 && "Air quality is unhealthy for sensitive groups. Everyone should limit prolonged outdoor exertion."}
                 </p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6 bg-green-500/10 border-green-500/30">
+          <Card className="p-6 bg-primary/10 border-primary/30">
             <div className="flex items-start gap-4">
-              <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" />
+              <Satellite className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
               <div className="space-y-2">
-                <h3 className="font-bold text-lg">Health Recommendations</h3>
+                <h3 className="font-bold text-lg">NASA Data Integration</h3>
                 <p className="text-sm text-muted-foreground">
-                  Air quality is acceptable for most individuals. Unusually sensitive people should consider reducing prolonged outdoor exertion.
+                  This dashboard uses NASA atmospheric data and predictive models to forecast air quality and provide public health recommendations.
                 </p>
               </div>
             </div>
@@ -163,6 +196,8 @@ const AirQuality = () => {
             </div>
           </div>
         </Card>
+        </>
+        )}
       </div>
     </div>
   );

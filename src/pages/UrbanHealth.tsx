@@ -1,26 +1,41 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users, Droplets, Thermometer, TreePine, Building2 } from "lucide-react";
+import { ArrowLeft, Users, Droplets, Thermometer, TreePine, Building2, Loader2, Satellite } from "lucide-react";
 import { Link } from "react-router-dom";
 import { BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { useState, useEffect } from "react";
+import { getUrbanHealthMetrics, type UrbanHealthMetrics } from "@/services/earthdataApi";
+import { Badge } from "@/components/ui/badge";
 
 const UrbanHealth = () => {
-  const sustainabilityData = [
-    { metric: "Air Quality", score: 72, target: 85 },
-    { metric: "Water Quality", score: 88, target: 90 },
-    { metric: "Green Space", score: 65, target: 75 },
-    { metric: "Energy Efficiency", score: 78, target: 85 },
-    { metric: "Waste Management", score: 82, target: 90 },
-    { metric: "Public Transport", score: 70, target: 80 },
-  ];
+  const [cityMetrics, setCityMetrics] = useState<UrbanHealthMetrics[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const cityMetrics = [
-    { city: "NYC", airQuality: 68, greenSpace: 45, waterQuality: 82, temperature: 72 },
-    { city: "LA", airQuality: 62, greenSpace: 38, waterQuality: 75, temperature: 85 },
-    { city: "Chicago", airQuality: 71, greenSpace: 52, waterQuality: 88, temperature: 65 },
-    { city: "Houston", airQuality: 64, greenSpace: 42, waterQuality: 78, temperature: 88 },
-    { city: "Seattle", airQuality: 82, greenSpace: 68, waterQuality: 92, temperature: 62 },
-  ];
+  useEffect(() => {
+    loadUrbanData();
+  }, []);
+
+  const loadUrbanData = async () => {
+    setLoading(true);
+    const data = await getUrbanHealthMetrics();
+    setCityMetrics(data);
+    setLoading(false);
+  };
+
+  const sustainabilityData = cityMetrics.length > 0 ? [
+    { metric: "Air Quality", score: Math.round(cityMetrics.reduce((sum, c) => sum + c.airQuality, 0) / cityMetrics.length), target: 85 },
+    { metric: "Water Quality", score: Math.round(cityMetrics.reduce((sum, c) => sum + c.waterQuality, 0) / cityMetrics.length), target: 90 },
+    { metric: "Green Space", score: Math.round(cityMetrics.reduce((sum, c) => sum + c.greenSpace, 0) / cityMetrics.length), target: 75 },
+    { metric: "Health Score", score: Math.round(cityMetrics.reduce((sum, c) => sum + c.healthScore, 0) / cityMetrics.length), target: 85 },
+  ] : [];
+
+  const cityChartData = cityMetrics.map(city => ({
+    city: city.city,
+    airQuality: city.airQuality,
+    greenSpace: city.greenSpace,
+    waterQuality: city.waterQuality,
+    temperature: city.temperature
+  }));
 
   const indicators = [
     { icon: Thermometer, label: "Temperature", value: "72°F", status: "optimal", color: "text-green-500" },
@@ -41,15 +56,28 @@ const UrbanHealth = () => {
                 Back to Home
               </Button>
             </Link>
-            <h1 className="text-4xl font-bold flex items-center gap-3">
-              <Users className="w-10 h-10 text-primary" />
-              Urban Health & Sustainability
-            </h1>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-4xl font-bold flex items-center gap-3">
+                <Users className="w-10 h-10 text-primary" />
+                Urban Health & Sustainability
+              </h1>
+              <Badge variant="outline" className="border-primary/30">
+                <Satellite className="w-3 h-3 mr-1" />
+                NASA SEDAC
+              </Badge>
+            </div>
             <p className="text-muted-foreground">NASA Earth observation data for smart city planning</p>
           </div>
         </div>
 
         {/* Key Indicators */}
+        {loading ? (
+          <Card className="p-12 text-center bg-card/50 backdrop-blur-sm">
+            <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading urban health data...</p>
+          </Card>
+        ) : (
+          <>
         <div className="grid md:grid-cols-4 gap-6">
           {indicators.map((indicator, index) => (
             <Card key={index} className="p-6 bg-card/50 backdrop-blur-sm hover:shadow-[0_0_30px_hsl(189_94%_55%/0.2)] transition-all">
@@ -93,7 +121,7 @@ const UrbanHealth = () => {
           <Card className="p-8 bg-card/50 backdrop-blur-sm">
             <h2 className="text-2xl font-bold mb-6">Multi-City Comparison</h2>
             <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={cityMetrics}>
+              <BarChart data={cityChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(237 36% 18%)" />
                 <XAxis dataKey="city" stroke="hsl(215 20% 65%)" />
                 <YAxis stroke="hsl(215 20% 65%)" />
@@ -174,6 +202,8 @@ const UrbanHealth = () => {
             </div>
           </div>
         </Card>
+        </>
+        )}
       </div>
     </div>
   );

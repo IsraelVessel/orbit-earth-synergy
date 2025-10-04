@@ -1,67 +1,53 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Database, Search, BookOpen, Users2, Rocket } from "lucide-react";
+import { ArrowLeft, Database, Search, BookOpen, Users2, Rocket, Loader2, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
+import { getOSDRStudies, searchOSDRStudies, type OSDRStudy } from "@/services/osdrApi";
 
 const SpaceBiology = () => {
-  const publications = [
-    {
-      title: "Effects of Microgravity on Human Bone Density During Extended Mars Missions",
-      authors: "Johnson, M., Chen, L., Rodriguez, A.",
-      year: 2024,
-      category: "Human Physiology",
-      citations: 127,
-      summary: "Long-term microgravity exposure leads to 1-2% bone mass loss per month. Countermeasures including resistance exercise and bisphosphonates show promise."
-    },
-    {
-      title: "Plant Growth Systems for Lunar Habitats: Hydroponic Innovations",
-      authors: "Kim, S., Patel, R., O'Brien, K.",
-      year: 2024,
-      category: "Astrobotany",
-      citations: 89,
-      summary: "Novel hydroponic systems demonstrate 40% improved yield in simulated lunar gravity with LED optimization."
-    },
-    {
-      title: "Radiation Shielding Through Biological Mechanisms in Deep Space",
-      authors: "Thompson, D., Yamamoto, H., Lee, J.",
-      year: 2023,
-      category: "Radiation Biology",
-      citations: 156,
-      summary: "Certain extremophile proteins show potential for radiation protection in astronauts during Mars transit."
-    },
-    {
-      title: "Sleep Cycle Disruption and Circadian Rhythm Management in Zero Gravity",
-      authors: "Anderson, P., Zhang, W., Martinez, C.",
-      year: 2024,
-      category: "Human Physiology",
-      citations: 98,
-      summary: "Blue light therapy and melatonin supplementation restore 85% of normal circadian function in microgravity."
-    },
-    {
-      title: "Microbiome Changes During Long-Duration Space Flight",
-      authors: "Williams, T., Kumar, A., Dubois, M.",
-      year: 2023,
-      category: "Microbiology",
-      citations: 143,
-      summary: "Gut microbiome diversity decreases by 30% during 6-month missions, requiring probiotic interventions."
-    },
-  ];
+  const [studies, setStudies] = useState<OSDRStudy[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    loadStudies();
+  }, []);
+
+  const loadStudies = async () => {
+    setLoading(true);
+    const data = await getOSDRStudies(20);
+    setStudies(data);
+    setLoading(false);
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      loadStudies();
+      return;
+    }
+    
+    setSearching(true);
+    const results = await searchOSDRStudies(searchQuery);
+    setStudies(results);
+    setSearching(false);
+  };
 
   const categories = [
-    { name: "Human Physiology", count: 142, color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/30" },
-    { name: "Astrobotany", count: 87, color: "bg-green-500/10 text-green-500 border-green-500/30" },
-    { name: "Radiation Biology", count: 64, color: "bg-red-500/10 text-red-500 border-red-500/30" },
-    { name: "Microbiology", count: 95, color: "bg-purple-500/10 text-purple-500 border-purple-500/30" },
-    { name: "Psychology", count: 58, color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/30" },
+    { name: "Human Physiology", count: studies.filter(s => s.organism.includes("Homo sapiens")).length, color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/30" },
+    { name: "Microbiology", count: studies.filter(s => s.factors.some(f => f.includes("microb"))).length, color: "bg-purple-500/10 text-purple-500 border-purple-500/30" },
+    { name: "Plant Biology", count: studies.filter(s => s.organism.includes("Arabidopsis") || s.factors.some(f => f.includes("plant"))).length, color: "bg-green-500/10 text-green-500 border-green-500/30" },
+    { name: "Model Organisms", count: studies.filter(s => s.organism.includes("Drosophila") || s.organism.includes("Mus")).length, color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/30" },
   ];
 
   const researchStats = [
-    { label: "Total Publications", value: "500+" },
-    { label: "Active Researchers", value: "1,200+" },
-    { label: "Ongoing Studies", value: "78" },
-    { label: "Citation Index", value: "12.4" },
+    { label: "Total Studies", value: studies.length.toString() },
+    { label: "Data Source", value: "NASA OSDR" },
+    { label: "Real-Time", value: "Live" },
+    { label: "Categories", value: categories.length.toString() },
   ];
 
   return (
@@ -90,11 +76,19 @@ const SpaceBiology = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input 
-                placeholder="Search publications, authors, or topics..." 
+                placeholder="Search NASA space biology studies..." 
                 className="pl-10 bg-background/50"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
             </div>
-            <Button className="bg-primary hover:bg-primary/90 shadow-[0_0_20px_hsl(189_94%_55%/0.3)]">
+            <Button 
+              className="bg-primary hover:bg-primary/90 shadow-[0_0_20px_hsl(189_94%_55%/0.3)]"
+              onClick={handleSearch}
+              disabled={searching}
+            >
+              {searching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
               Search
             </Button>
           </div>
@@ -129,44 +123,73 @@ const SpaceBiology = () => {
         <div className="space-y-4">
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Rocket className="w-6 h-6 text-primary" />
-            Recent Publications
+            NASA OSDR Studies
           </h2>
           
-          {publications.map((pub, index) => (
-            <Card key={index} className="p-6 bg-card/50 backdrop-blur-sm hover:shadow-[0_0_30px_hsl(189_94%_55%/0.2)] transition-all">
-              <div className="space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-foreground mb-2 hover:text-primary transition-colors cursor-pointer">
-                      {pub.title}
-                    </h3>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                      <Users2 className="w-4 h-4" />
-                      {pub.authors}
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
-                    {pub.category}
-                  </Badge>
-                </div>
-                
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {pub.summary}
-                </p>
-                
-                <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>{pub.year}</span>
-                    <span>•</span>
-                    <span>{pub.citations} citations</span>
-                  </div>
-                  <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80">
-                    View Full Paper →
-                  </Button>
-                </div>
-              </div>
+          {loading ? (
+            <Card className="p-12 text-center bg-card/50 backdrop-blur-sm">
+              <Loader2 className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading NASA OSDR space biology studies...</p>
             </Card>
-          ))}
+          ) : studies.length === 0 ? (
+            <Card className="p-12 text-center bg-card/50 backdrop-blur-sm">
+              <Database className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">No Studies Found</h3>
+              <p className="text-muted-foreground">Try a different search term</p>
+            </Card>
+          ) : (
+            studies.map((study) => (
+              <Card key={study.accession} className="p-6 bg-card/50 backdrop-blur-sm hover:shadow-[0_0_30px_hsl(189_94%_55%/0.2)] transition-all">
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                          {study.accession}
+                        </Badge>
+                        <Badge variant="outline" className="bg-accent/10 border-accent/30">
+                          {study.organism}
+                        </Badge>
+                      </div>
+                      <h3 className="text-lg font-bold text-foreground mb-2">
+                        {study.title}
+                      </h3>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => window.open(`https://osdr.nasa.gov/bio/repo/search?q=${study.accession}`, '_blank')}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      View on OSDR
+                    </Button>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {study.description}
+                  </p>
+
+                  {study.factors.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {study.factors.slice(0, 5).map((factor, idx) => (
+                        <Badge key={idx} variant="secondary" className="text-xs">
+                          {factor}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {study.assay_types.length > 0 && (
+                    <div className="pt-2 border-t border-border/50">
+                      <div className="text-sm text-muted-foreground">
+                        <span className="font-semibold">Assay Types:</span> {study.assay_types.join(', ')}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            ))
+          )}
         </div>
 
         {/* Mission Applications */}
