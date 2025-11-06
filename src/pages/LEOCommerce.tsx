@@ -4,8 +4,11 @@ import { ArrowLeft, Rocket, DollarSign, TrendingUp, Globe, Satellite, Factory } 
 import { Link } from "react-router-dom";
 import { PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { Badge } from "@/components/ui/badge";
+import BusinessSimulator from "@/components/BusinessSimulator";
+import { useState } from "react";
 
 const LEOCommerce = () => {
+  const [activeSimulation, setActiveSimulation] = useState<any>(null);
   const marketData = [
     { sector: "Manufacturing", value: 35, color: "hsl(189 94% 55%)" },
     { sector: "Research", value: 25, color: "hsl(280 80% 60%)" },
@@ -32,7 +35,17 @@ const LEOCommerce = () => {
       roi: "5-7 years",
       description: "Manufacturing of advanced materials, pharmaceuticals, and fiber optics in microgravity conditions.",
       challenges: ["Launch costs", "Supply chain logistics", "Quality control"],
-      color: "from-cyan-500 to-blue-600"
+      color: "from-cyan-500 to-blue-600",
+      defaults: {
+        launchCost: 100000000,
+        operationalCost: 30000000,
+        marketSize: 1500000000,
+        marketShare: 0.08,
+        growthRate: 35,
+        years: 10
+      },
+      revenueMultiplier: 1.2,
+      riskFactor: 15
     },
     {
       title: "Space Tourism",
@@ -42,7 +55,17 @@ const LEOCommerce = () => {
       roi: "8-10 years",
       description: "Suborbital and orbital tourism experiences for private customers and researchers.",
       challenges: ["Safety certification", "Insurance costs", "Market demand"],
-      color: "from-purple-500 to-pink-600"
+      color: "from-purple-500 to-pink-600",
+      defaults: {
+        launchCost: 250000000,
+        operationalCost: 80000000,
+        marketSize: 2000000000,
+        marketShare: 0.05,
+        growthRate: 45,
+        years: 10
+      },
+      revenueMultiplier: 1.5,
+      riskFactor: 25
     },
     {
       title: "Satellite Services",
@@ -52,7 +75,17 @@ const LEOCommerce = () => {
       roi: "3-5 years",
       description: "In-orbit servicing, repair, and refueling of existing satellite infrastructure.",
       challenges: ["Technical complexity", "Regulatory approval", "Debris mitigation"],
-      color: "from-green-500 to-emerald-600"
+      color: "from-green-500 to-emerald-600",
+      defaults: {
+        launchCost: 50000000,
+        operationalCost: 20000000,
+        marketSize: 800000000,
+        marketShare: 0.12,
+        growthRate: 28,
+        years: 10
+      },
+      revenueMultiplier: 1.0,
+      riskFactor: 10
     },
   ];
 
@@ -188,7 +221,10 @@ const LEOCommerce = () => {
                     </div>
                   </div>
 
-                  <Button className="w-full mt-4 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30">
+                  <Button 
+                    className="w-full mt-4 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30"
+                    onClick={() => setActiveSimulation(model)}
+                  >
                     Run Simulation
                   </Button>
                 </div>
@@ -271,6 +307,14 @@ const LEOCommerce = () => {
           </div>
         </Card>
       </div>
+
+      {/* Simulation Modal */}
+      {activeSimulation && (
+        <BusinessSimulator 
+          model={activeSimulation} 
+          onClose={() => setActiveSimulation(null)} 
+        />
+      )}
     </div>
   );
 };
