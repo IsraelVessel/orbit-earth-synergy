@@ -138,13 +138,13 @@ export async function getUrbanHealthMetrics(): Promise<UrbanHealthMetrics[]> {
       healthScore: 67
     },
     {
-      city: 'Jos',
-      temperature: 22.8,
-      greenSpace: 38.2,
-      airQuality: 72,
-      waterQuality: 76,
-      population: 900000,
-      healthScore: 74
+      city: 'Ibadan',
+      temperature: 26.8,
+      greenSpace: 22.5,
+      airQuality: 58,
+      waterQuality: 68,
+      population: 3649000,
+      healthScore: 65
     },
     {
       city: 'Kano',
