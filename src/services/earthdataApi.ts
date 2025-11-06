@@ -118,6 +118,42 @@ export async function getUrbanHealthMetrics(): Promise<UrbanHealthMetrics[]> {
       waterQuality: 95,
       population: 794128,
       healthScore: 91
+    },
+    {
+      city: 'Lagos',
+      temperature: 27.2,
+      greenSpace: 12.8,
+      airQuality: 48,
+      waterQuality: 62,
+      population: 14862000,
+      healthScore: 58
+    },
+    {
+      city: 'Abuja',
+      temperature: 26.5,
+      greenSpace: 28.5,
+      airQuality: 61,
+      waterQuality: 71,
+      population: 3652000,
+      healthScore: 67
+    },
+    {
+      city: 'Jos',
+      temperature: 22.8,
+      greenSpace: 38.2,
+      airQuality: 72,
+      waterQuality: 76,
+      population: 900000,
+      healthScore: 74
+    },
+    {
+      city: 'Kano',
+      temperature: 26.8,
+      greenSpace: 15.3,
+      airQuality: 54,
+      waterQuality: 65,
+      population: 3931000,
+      healthScore: 62
     }
   ];
 }
