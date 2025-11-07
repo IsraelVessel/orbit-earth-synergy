@@ -38,6 +38,44 @@ export type Database = {
         }
         Relationships: []
       }
+      simulations: {
+        Row: {
+          business_model: string
+          created_at: string
+          id: string
+          parameters: Json
+          results: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_model: string
+          created_at?: string
+          id?: string
+          parameters: Json
+          results: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_model?: string
+          created_at?: string
+          id?: string
+          parameters?: Json
+          results?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

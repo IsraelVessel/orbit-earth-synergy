@@ -5,8 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Area, AreaChart } from "recharts";
-import { Calculator, TrendingUp, AlertCircle, CheckCircle, DollarSign, Rocket } from "lucide-react";
+import { Calculator, TrendingUp, AlertCircle, CheckCircle, DollarSign, Rocket, Save } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface SimulationParams {
   launchCost: number;
@@ -41,6 +43,8 @@ const BusinessSimulator = ({ model, onClose }: SimulatorProps) => {
     breakEvenYear: 0,
     profitMargin: 0
   });
+  const [saving, setSaving] = useState(false);
+  const { toast: showToast } = useToast();
 
   // Run simulation whenever parameters change
   useEffect(() => {
@@ -121,6 +125,36 @@ const BusinessSimulator = ({ model, onClose }: SimulatorProps) => {
 
   const viability = getViabilityStatus();
 
+  const saveSimulation = async () => {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { error } = await supabase.from("simulations").insert([{
+        user_id: user.id,
+        business_model: model.title,
+        parameters: params as any,
+        results: metrics as any,
+      }]);
+
+      if (error) throw error;
+
+      showToast({
+        title: "Success",
+        description: "Simulation saved successfully!",
+      });
+    } catch (error: any) {
+      showToast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm overflow-y-auto">
       <div className="container mx-auto max-w-7xl p-6 space-y-6">
@@ -133,7 +167,13 @@ const BusinessSimulator = ({ model, onClose }: SimulatorProps) => {
             </h2>
             <p className="text-muted-foreground mt-2">Adjust parameters to model your business scenario</p>
           </div>
-          <Button onClick={onClose} variant="outline">Close Simulator</Button>
+          <div className="flex gap-2">
+            <Button onClick={saveSimulation} disabled={saving} className="bg-green-600 hover:bg-green-700">
+              <Save className="w-4 h-4 mr-2" />
+              {saving ? "Saving..." : "Save Simulation"}
+            </Button>
+            <Button onClick={onClose} variant="outline">Close Simulator</Button>
+          </div>
         </div>
 
         {/* Viability Badge */}

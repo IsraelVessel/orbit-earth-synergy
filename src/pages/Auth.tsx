@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isResetPassword, setIsResetPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -40,7 +41,19 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      if (isLogin) {
+      if (isResetPassword) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth`,
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Check your email",
+          description: "We've sent you a password reset link.",
+        });
+        setIsResetPassword(false);
+      } else if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -95,19 +108,21 @@ const Auth = () => {
           </div>
           
           <CardTitle className="text-3xl font-bold">
-            {isLogin ? "Welcome Back" : "Create Account"}
+            {isResetPassword ? "Reset Password" : (isLogin ? "Welcome Back" : "Create Account")}
           </CardTitle>
           
           <CardDescription>
-            {isLogin 
-              ? "Sign in to access the platform" 
-              : "Sign up to explore Earth observation data"}
+            {isResetPassword
+              ? "Enter your email to receive a reset link"
+              : (isLogin 
+                ? "Sign in to access the platform" 
+                : "Sign up to explore Earth observation data")}
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleAuth} className="space-y-4">
-            {!isLogin && (
+            {!isLogin && !isResetPassword && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name</Label>
@@ -147,37 +162,65 @@ const Auth = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
-            </div>
+            {!isResetPassword && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+            )}
 
             <Button 
               type="submit" 
               className="w-full bg-primary hover:bg-primary/90 shadow-[0_0_20px_hsl(189_94%_55%/0.4)]"
               disabled={loading}
             >
-              {loading ? "Loading..." : (isLogin ? "Sign In" : "Sign Up")}
+              {loading ? "Loading..." : (
+                isResetPassword ? "Send Reset Link" : (isLogin ? "Sign In" : "Sign Up")
+              )}
             </Button>
 
-            <div className="text-center text-sm">
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-primary hover:underline"
-              >
-                {isLogin 
-                  ? "Don't have an account? Sign up" 
-                  : "Already have an account? Sign in"}
-              </button>
+            <div className="text-center text-sm space-y-2">
+              {!isResetPassword && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setIsLogin(!isLogin)}
+                    className="text-primary hover:underline block w-full"
+                  >
+                    {isLogin 
+                      ? "Don't have an account? Sign up" 
+                      : "Already have an account? Sign in"}
+                  </button>
+                  
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={() => setIsResetPassword(true)}
+                      className="text-muted-foreground hover:text-primary hover:underline block w-full"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </>
+              )}
+
+              {isResetPassword && (
+                <button
+                  type="button"
+                  onClick={() => setIsResetPassword(false)}
+                  className="text-primary hover:underline block w-full"
+                >
+                  Back to sign in
+                </button>
+              )}
             </div>
           </form>
         </CardContent>

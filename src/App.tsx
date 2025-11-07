@@ -10,6 +10,8 @@ import UrbanHealth from "./pages/UrbanHealth";
 import SpaceBiology from "./pages/SpaceBiology";
 import LEOCommerce from "./pages/LEOCommerce";
 import Auth from "./pages/Auth";
+import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -23,6 +25,8 @@ const App = () => (
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/air-quality" element={<ProtectedRoute><AirQuality /></ProtectedRoute>} />
           <Route path="/urban-health" element={<ProtectedRoute><UrbanHealth /></ProtectedRoute>} />
           <Route path="/space-biology" element={<ProtectedRoute><SpaceBiology /></ProtectedRoute>} />
