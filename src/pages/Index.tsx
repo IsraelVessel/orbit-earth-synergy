@@ -1,9 +1,27 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Satellite, Users, Rocket, Wind, Database, LineChart } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Satellite, Users, Rocket, Wind, Database, LineChart, LogOut } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      navigate("/auth");
+    }
+  };
+
   const modules = [
     {
       icon: Users,
@@ -37,6 +55,19 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
+      {/* Logout Button */}
+      <div className="absolute top-6 right-6 z-50">
+        <Button 
+          onClick={handleLogout}
+          variant="outline"
+          size="sm"
+          className="border-primary/30 hover:bg-primary/10"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Logout
+        </Button>
+      </div>
+
       {/* Hero Section */}
       <section className="relative overflow-hidden px-6 py-20 lg:py-32">
         <div className="absolute inset-0 bg-gradient-nebula opacity-20"></div>

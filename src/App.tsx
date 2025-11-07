@@ -9,6 +9,8 @@ import AirQuality from "./pages/AirQuality";
 import UrbanHealth from "./pages/UrbanHealth";
 import SpaceBiology from "./pages/SpaceBiology";
 import LEOCommerce from "./pages/LEOCommerce";
+import Auth from "./pages/Auth";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -19,11 +21,12 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/air-quality" element={<AirQuality />} />
-          <Route path="/urban-health" element={<UrbanHealth />} />
-          <Route path="/space-biology" element={<SpaceBiology />} />
-          <Route path="/leo-commerce" element={<LEOCommerce />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/air-quality" element={<ProtectedRoute><AirQuality /></ProtectedRoute>} />
+          <Route path="/urban-health" element={<ProtectedRoute><UrbanHealth /></ProtectedRoute>} />
+          <Route path="/space-biology" element={<ProtectedRoute><SpaceBiology /></ProtectedRoute>} />
+          <Route path="/leo-commerce" element={<ProtectedRoute><LEOCommerce /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
