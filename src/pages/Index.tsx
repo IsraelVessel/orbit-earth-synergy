@@ -66,6 +66,7 @@ const Index = () => {
               <Button 
                 size="lg" 
                 className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_30px_hsl(189_94%_55%/0.5)] hover:shadow-[0_0_40px_hsl(189_94%_55%/0.7)] transition-all"
+                onClick={() => document.getElementById('modules-section')?.scrollIntoView({ behavior: 'smooth' })}
               >
                 <LineChart className="w-5 h-5 mr-2" />
                 Explore Modules
@@ -74,8 +75,11 @@ const Index = () => {
                 size="lg" 
                 variant="outline"
                 className="border-primary/30 hover:bg-primary/10"
+                asChild
               >
-                View Documentation
+                <a href="https://www.earthdata.nasa.gov/" target="_blank" rel="noopener noreferrer">
+                  View Documentation
+                </a>
               </Button>
             </div>
           </div>
@@ -83,7 +87,7 @@ const Index = () => {
       </section>
 
       {/* Modules Grid */}
-      <section className="px-6 py-20">
+      <section id="modules-section" className="px-6 py-20">
         <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Integrated Modules</h2>
