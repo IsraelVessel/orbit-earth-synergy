@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Trash2, Calendar, TrendingUp, Rocket, Download, Filter } from "lucide-react";
+import { BarChart3, Trash2, Calendar, TrendingUp, Rocket, Download, Filter, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
+import BusinessSimulator from "@/components/BusinessSimulator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
@@ -31,6 +32,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [filterBy, setFilterBy] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("date-desc");
+  const [editingSimulation, setEditingSimulation] = useState<Simulation | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -93,6 +95,15 @@ const Dashboard = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleEditSimulation = (simulation: Simulation) => {
+    setEditingSimulation(simulation);
+  };
+
+  const handleCloseSimulator = () => {
+    setEditingSimulation(null);
+    fetchDashboardData(); // Refresh data after editing
   };
 
   const formatCurrency = (value: number) => {
@@ -490,14 +501,24 @@ const Dashboard = () => {
                           {new Date(simulation.created_at).toLocaleDateString()}
                         </CardDescription>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteSimulation(simulation.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditSimulation(simulation)}
+                          className="text-primary hover:text-primary"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteSimulation(simulation.id)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -549,6 +570,23 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Edit Simulation Modal */}
+      {editingSimulation && (
+        <BusinessSimulator
+          model={{
+            title: editingSimulation.business_model,
+            icon: Rocket,
+            defaults: editingSimulation.parameters,
+            revenueMultiplier: 1,
+            riskFactor: 10
+          }}
+          onClose={handleCloseSimulator}
+          simulationId={editingSimulation.id}
+          initialParams={editingSimulation.parameters}
+          initialResults={editingSimulation.results}
+        />
+      )}
     </div>
   );
 };

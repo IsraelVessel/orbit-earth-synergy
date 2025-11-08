@@ -30,10 +30,13 @@ interface BusinessModel {
 interface SimulatorProps {
   model: BusinessModel;
   onClose: () => void;
+  simulationId?: string;
+  initialParams?: SimulationParams;
+  initialResults?: any;
 }
 
-const BusinessSimulator = ({ model, onClose }: SimulatorProps) => {
-  const [params, setParams] = useState<SimulationParams>(model.defaults);
+const BusinessSimulator = ({ model, onClose, simulationId, initialParams, initialResults }: SimulatorProps) => {
+  const [params, setParams] = useState<SimulationParams>(initialParams || model.defaults);
   const [results, setResults] = useState<any[]>([]);
   const [metrics, setMetrics] = useState({
     totalRevenue: 0,
@@ -131,19 +134,35 @@ const BusinessSimulator = ({ model, onClose }: SimulatorProps) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase.from("simulations").insert([{
-        user_id: user.id,
-        business_model: model.title,
-        parameters: params as any,
-        results: metrics as any,
-      }]);
+      if (simulationId) {
+        // Update existing simulation
+        const { error } = await supabase.from("simulations").update({
+          parameters: params as any,
+          results: metrics as any,
+        }).eq("id", simulationId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      showToast({
-        title: "Success",
-        description: "Simulation saved successfully!",
-      });
+        showToast({
+          title: "Success",
+          description: "Simulation updated successfully!",
+        });
+      } else {
+        // Create new simulation
+        const { error } = await supabase.from("simulations").insert([{
+          user_id: user.id,
+          business_model: model.title,
+          parameters: params as any,
+          results: metrics as any,
+        }]);
+
+        if (error) throw error;
+
+        showToast({
+          title: "Success",
+          description: "Simulation saved successfully!",
+        });
+      }
     } catch (error: any) {
       showToast({
         title: "Error",
@@ -170,7 +189,7 @@ const BusinessSimulator = ({ model, onClose }: SimulatorProps) => {
           <div className="flex gap-2">
             <Button onClick={saveSimulation} disabled={saving} className="bg-green-600 hover:bg-green-700">
               <Save className="w-4 h-4 mr-2" />
-              {saving ? "Saving..." : "Save Simulation"}
+              {saving ? "Saving..." : simulationId ? "Update Simulation" : "Save Simulation"}
             </Button>
             <Button onClick={onClose} variant="outline">Close Simulator</Button>
           </div>
