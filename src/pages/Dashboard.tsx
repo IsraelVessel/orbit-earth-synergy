@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Trash2, Calendar, TrendingUp, Rocket, Download, Filter, Edit } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { BarChart3, Trash2, Calendar, TrendingUp, Rocket, Download, Filter, Edit, Eye, GitCompare, FileDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
@@ -12,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 
 interface Simulation {
   id: string;
@@ -33,8 +35,15 @@ const Dashboard = () => {
   const [filterBy, setFilterBy] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("date-desc");
   const [editingSimulation, setEditingSimulation] = useState<Simulation | null>(null);
+  const [selectedSimulations, setSelectedSimulations] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  useKeyboardShortcuts({
+    onSearchOpen: () => {},
+    onHelpOpen: () => {},
+    onNewSimulation: () => navigate("/"),
+  });
 
   useEffect(() => {
     fetchDashboardData();
@@ -104,6 +113,97 @@ const Dashboard = () => {
   const handleCloseSimulator = () => {
     setEditingSimulation(null);
     fetchDashboardData(); // Refresh data after editing
+  };
+
+  const toggleSimulationSelection = (id: string) => {
+    setSelectedSimulations(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedSimulations.size === filteredAndSortedSimulations.length) {
+      setSelectedSimulations(new Set());
+    } else {
+      setSelectedSimulations(new Set(filteredAndSortedSimulations.map(s => s.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedSimulations.size === 0) return;
+    
+    try {
+      const { error } = await supabase
+        .from("simulations")
+        .delete()
+        .in("id", Array.from(selectedSimulations));
+
+      if (error) throw error;
+
+      setSimulations(prev => prev.filter(sim => !selectedSimulations.has(sim.id)));
+      setSelectedSimulations(new Set());
+      toast({
+        title: "Success",
+        description: `${selectedSimulations.size} simulation(s) deleted successfully`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkCompare = () => {
+    if (selectedSimulations.size < 2) {
+      toast({
+        title: "Error",
+        description: "Please select at least 2 simulations to compare",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const ids = Array.from(selectedSimulations).join(",");
+    navigate(`/simulation/compare?ids=${ids}`);
+  };
+
+  const handleBulkExport = async () => {
+    if (selectedSimulations.size === 0) return;
+
+    const selectedSims = simulations.filter(sim => selectedSimulations.has(sim.id));
+    const csvContent = [
+      ["Business Model", "ROI %", "Net Profit", "Profit Margin %", "Total Revenue", "Total Costs", "Created Date"].join(","),
+      ...selectedSims.map(sim => [
+        sim.business_model,
+        sim.results.roi?.toFixed(1) || 0,
+        sim.results.net_profit || 0,
+        sim.results.profit_margin?.toFixed(1) || 0,
+        sim.results.total_revenue || 0,
+        sim.results.total_costs || 0,
+        new Date(sim.created_at).toLocaleDateString(),
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `simulations-export-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Success",
+      description: "Simulations exported to CSV",
+    });
   };
 
   const formatCurrency = (value: number) => {
@@ -474,6 +574,44 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Bulk Actions Bar */}
+          {selectedSimulations.size > 0 && (
+            <Card className="p-4 bg-muted/50 border-primary">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">
+                  {selectedSimulations.size} simulation(s) selected
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBulkExport}
+                  >
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Export CSV
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBulkCompare}
+                    disabled={selectedSimulations.size < 2}
+                  >
+                    <GitCompare className="w-4 h-4 mr-2" />
+                    Compare
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
           {simulations.length === 0 ? (
             <Card className="p-12 text-center">
               <BarChart3 className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
@@ -486,12 +624,27 @@ const Dashboard = () => {
               </Button>
             </Card>
           ) : (
-            <div className="grid md:grid-cols-2 gap-6">
+            <>
+              {filteredAndSortedSimulations.length > 0 && (
+                <div className="flex items-center gap-3 mb-4">
+                  <Checkbox
+                    checked={selectedSimulations.size === filteredAndSortedSimulations.length && filteredAndSortedSimulations.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                  <span className="text-sm text-muted-foreground">Select All</span>
+                </div>
+              )}
+              <div className="grid md:grid-cols-2 gap-6">
               {filteredAndSortedSimulations.map((simulation) => (
                 <Card key={simulation.id} className="bg-card/50 backdrop-blur-sm hover:border-primary/50 transition-all">
                   <CardHeader>
                     <div className="flex items-start justify-between">
-                      <div>
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          checked={selectedSimulations.has(simulation.id)}
+                          onCheckedChange={() => toggleSimulationSelection(simulation.id)}
+                        />
+                        <div>
                         <CardTitle className="flex items-center gap-2 mb-2">
                           <Rocket className="w-5 h-5 text-primary" />
                           {simulation.business_model}
@@ -500,8 +653,17 @@ const Dashboard = () => {
                           <Calendar className="w-3 h-3" />
                           {new Date(simulation.created_at).toLocaleDateString()}
                         </CardDescription>
+                        </div>
                       </div>
                       <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/simulation/${simulation.id}`)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -567,6 +729,7 @@ const Dashboard = () => {
                 </Card>
               ))}
             </div>
+            </>
           )}
         </div>
       </div>
