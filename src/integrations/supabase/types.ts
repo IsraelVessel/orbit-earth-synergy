@@ -38,6 +38,39 @@ export type Database = {
         }
         Relationships: []
       }
+      simulation_templates: {
+        Row: {
+          business_model: string
+          created_at: string
+          description: string | null
+          id: string
+          parameters: Json
+          template_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_model: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          parameters: Json
+          template_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_model?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          parameters?: Json
+          template_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       simulations: {
         Row: {
           business_model: string

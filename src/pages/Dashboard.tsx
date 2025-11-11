@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
 import BusinessSimulator from "@/components/BusinessSimulator";
+import DashboardInsightsWidget from "@/components/DashboardInsightsWidget";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import jsPDF from "jspdf";
@@ -536,6 +537,9 @@ const Dashboard = () => {
         )}
 
         {/* Simulations List */}
+        {/* Dashboard Insights Widget */}
+        <DashboardInsightsWidget simulations={simulations} />
+
         <div className="space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <h2 className="text-2xl font-bold">Saved Simulations</h2>

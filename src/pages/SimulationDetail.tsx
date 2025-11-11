@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, TrendingUp, DollarSign, PieChart as PieChartIcon } from "lucide-react";
+import { ArrowLeft, TrendingUp, DollarSign, PieChart as PieChartIcon, Download } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import AppHeader from "@/components/AppHeader";
 import { useToast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 interface Simulation {
   id: string;
@@ -23,10 +25,71 @@ const SimulationDetail = () => {
   const { toast } = useToast();
   const [simulation, setSimulation] = useState<Simulation | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchSimulation();
   }, [id]);
+
+  const exportToPDF = async () => {
+    if (!reportRef.current || !simulation) return;
+    
+    setExporting(true);
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      // Add title
+      pdf.setFontSize(20);
+      pdf.text(`${simulation.business_model} - Simulation Report`, pageWidth / 2, 20, { align: 'center' });
+      
+      pdf.setFontSize(10);
+      pdf.text(`Generated on: ${new Date().toLocaleDateString()}`, pageWidth / 2, 28, { align: 'center' });
+      
+      // Capture the report content
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = pageWidth - 20;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 35;
+      
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= (pageHeight - position);
+      
+      // Add additional pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight + 10;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      pdf.save(`${simulation.business_model.replace(/\s+/g, '_')}_Report.pdf`);
+      
+      toast({
+        title: "Success",
+        description: "PDF report exported successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export PDF",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const fetchSimulation = async () => {
     try {
@@ -110,21 +173,28 @@ const SimulationDetail = () => {
     <div className="min-h-screen bg-background">
       <AppHeader />
       <div className="container mx-auto px-6 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/dashboard")}
-          className="mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Button>
-
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">{simulation.business_model}</h1>
-          <p className="text-muted-foreground">
-            Created on {new Date(simulation.created_at).toLocaleDateString()}
-          </p>
+        <div className="flex items-center justify-between mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/dashboard")}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          
+          <Button onClick={exportToPDF} disabled={exporting}>
+            <Download className="w-4 h-4 mr-2" />
+            {exporting ? "Exporting..." : "Export PDF"}
+          </Button>
         </div>
+
+        <div ref={reportRef}>
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold mb-2">{simulation.business_model}</h1>
+            <p className="text-muted-foreground">
+              Created on {new Date(simulation.created_at).toLocaleDateString()}
+            </p>
+          </div>
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -317,6 +387,7 @@ const SimulationDetail = () => {
             </Card>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
     </div>
   );

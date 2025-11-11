@@ -9,6 +9,7 @@ import { Calculator, TrendingUp, AlertCircle, CheckCircle, DollarSign, Rocket, S
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import TemplatesDialog from "@/components/TemplatesDialog";
 
 interface SimulationParams {
   launchCost: number;
@@ -282,6 +283,11 @@ const BusinessSimulator = ({ model, onClose, simulationId, initialParams, initia
             <p className="text-muted-foreground mt-2">Adjust parameters to model your business scenario</p>
           </div>
           <div className="flex gap-2">
+            <TemplatesDialog 
+              currentModel={model.title}
+              currentParams={params}
+              onLoadTemplate={(loadedParams) => setParams(loadedParams)}
+            />
             <Button onClick={saveSimulation} disabled={saving} className="bg-green-600 hover:bg-green-700">
               <Save className="w-4 h-4 mr-2" />
               {saving ? "Saving..." : simulationId ? "Update Simulation" : "Save Simulation"}
