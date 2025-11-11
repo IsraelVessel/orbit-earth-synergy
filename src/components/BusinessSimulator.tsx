@@ -47,12 +47,21 @@ const BusinessSimulator = ({ model, onClose, simulationId, initialParams, initia
     profitMargin: 0
   });
   const [saving, setSaving] = useState(false);
+  const [previousMetrics, setPreviousMetrics] = useState<any>(null);
   const { toast: showToast } = useToast();
 
   // Run simulation whenever parameters change
   useEffect(() => {
     runSimulation();
   }, [params]);
+
+  // Check for milestones whenever metrics change
+  useEffect(() => {
+    if (previousMetrics && metrics.roi > 0) {
+      checkMilestones();
+    }
+    setPreviousMetrics(metrics);
+  }, [metrics]);
 
   const runSimulation = () => {
     const simulationData = [];
@@ -127,6 +136,92 @@ const BusinessSimulator = ({ model, onClose, simulationId, initialParams, initia
   };
 
   const viability = getViabilityStatus();
+
+  const checkMilestones = async () => {
+    const milestones = [];
+
+    // ROI milestone - 100%
+    if (previousMetrics && previousMetrics.roi < 100 && metrics.roi >= 100) {
+      milestones.push({
+        milestone: "ROI Target of 100% Achieved",
+        currentValue: metrics.roi,
+        thresholdValue: 100,
+        metricType: "ROI"
+      });
+    }
+
+    // ROI milestone - 150%
+    if (previousMetrics && previousMetrics.roi < 150 && metrics.roi >= 150) {
+      milestones.push({
+        milestone: "Exceptional ROI of 150% Achieved",
+        currentValue: metrics.roi,
+        thresholdValue: 150,
+        metricType: "ROI"
+      });
+    }
+
+    // Profit margin milestone - 30%
+    if (previousMetrics && previousMetrics.profitMargin < 30 && metrics.profitMargin >= 30) {
+      milestones.push({
+        milestone: "Profit Margin Target of 30% Achieved",
+        currentValue: metrics.profitMargin,
+        thresholdValue: 30,
+        metricType: "Profit Margin"
+      });
+    }
+
+    // Break-even milestone - within 3 years
+    if (previousMetrics && previousMetrics.breakEvenYear > 3 && metrics.breakEvenYear <= 3 && metrics.breakEvenYear > 0) {
+      milestones.push({
+        milestone: "Early Break-Even Achieved (Within 3 Years)",
+        currentValue: metrics.breakEvenYear,
+        thresholdValue: 3,
+        metricType: "Break-Even Year"
+      });
+    }
+
+    // Send notifications for each milestone
+    for (const milestone of milestones) {
+      await sendMilestoneNotification(milestone);
+    }
+  };
+
+  const sendMilestoneNotification = async (milestoneData: any) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("id", user.id)
+        .single();
+
+      const userName = profile?.first_name 
+        ? `${profile.first_name} ${profile.last_name || ''}`.trim() 
+        : user.email.split('@')[0];
+
+      const { error } = await supabase.functions.invoke("send-milestone-notification", {
+        body: {
+          email: user.email,
+          userName,
+          businessModel: model.title,
+          ...milestoneData
+        }
+      });
+
+      if (error) {
+        console.error("Error sending milestone notification:", error);
+      } else {
+        showToast({
+          title: "🎉 Milestone Achieved!",
+          description: milestoneData.milestone,
+        });
+      }
+    } catch (error) {
+      console.error("Error in sendMilestoneNotification:", error);
+    }
+  };
 
   const saveSimulation = async () => {
     setSaving(true);
