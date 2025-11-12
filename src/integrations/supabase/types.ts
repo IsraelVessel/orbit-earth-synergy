@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      ab_tests: {
+        Row: {
+          base_parameters: Json
+          business_model: string
+          created_at: string
+          id: string
+          results: Json | null
+          status: string
+          test_name: string
+          updated_at: string
+          user_id: string
+          variations: Json
+        }
+        Insert: {
+          base_parameters: Json
+          business_model: string
+          created_at?: string
+          id?: string
+          results?: Json | null
+          status?: string
+          test_name: string
+          updated_at?: string
+          user_id: string
+          variations: Json
+        }
+        Update: {
+          base_parameters?: Json
+          business_model?: string
+          created_at?: string
+          id?: string
+          results?: Json | null
+          status?: string
+          test_name?: string
+          updated_at?: string
+          user_id?: string
+          variations?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_tests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -37,6 +84,92 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      simulation_scenarios: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          parameters: Json
+          results: Json | null
+          scenario_name: string
+          simulation_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          parameters: Json
+          results?: Json | null
+          scenario_name: string
+          simulation_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          parameters?: Json
+          results?: Json | null
+          scenario_name?: string
+          simulation_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_scenarios_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      simulation_shares: {
+        Row: {
+          created_at: string
+          id: string
+          permission: string
+          shared_by: string
+          shared_with_email: string
+          simulation_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission: string
+          shared_by: string
+          shared_with_email: string
+          simulation_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission?: string
+          shared_by?: string
+          shared_with_email?: string
+          simulation_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_shares_shared_by_fkey"
+            columns: ["shared_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_shares_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       simulation_templates: {
         Row: {
@@ -70,6 +203,54 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      simulation_versions: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          notes: string | null
+          parameters: Json
+          results: Json
+          simulation_id: string
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          notes?: string | null
+          parameters: Json
+          results: Json
+          simulation_id: string
+          version_number: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          parameters?: Json
+          results?: Json
+          simulation_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulation_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "simulation_versions_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "simulations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       simulations: {
         Row: {

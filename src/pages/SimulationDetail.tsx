@@ -10,6 +10,10 @@ import AppHeader from "@/components/AppHeader";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { ShareSimulationDialog } from "@/components/ShareSimulationDialog";
+import { VersionHistoryDialog } from "@/components/VersionHistoryDialog";
+import { ABTestDialog } from "@/components/ABTestDialog";
+import { ScenarioPlanner } from "@/components/ScenarioPlanner";
 
 interface Simulation {
   id: string;
@@ -27,6 +31,8 @@ const SimulationDetail = () => {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
+  const [localParameters, setLocalParameters] = useState<any>(null);
+  const [localResults, setLocalResults] = useState<any>(null);
 
   useEffect(() => {
     fetchSimulation();
@@ -101,6 +107,10 @@ const SimulationDetail = () => {
 
       if (error) throw error;
       setSimulation(data);
+      if (data) {
+        setLocalParameters(data.parameters);
+        setLocalResults(data.results);
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -138,7 +148,32 @@ const SimulationDetail = () => {
     );
   }
 
-  const { results, parameters } = simulation;
+  const results = localResults || simulation.results;
+  const parameters = localParameters || simulation.parameters;
+
+  const handleVersionRestore = (restoredParams: any, restoredResults: any) => {
+    setLocalParameters(restoredParams);
+    setLocalResults(restoredResults);
+  };
+
+  const handleScenarioRun = (scenarioParams: any) => {
+    setLocalParameters(scenarioParams);
+    // Recalculate results based on new parameters (simplified calculation)
+    const totalRevenue = scenarioParams.monthlyRevenue * 12 || results.total_revenue;
+    const totalCosts = scenarioParams.productionCost * 12 || results.total_costs;
+    const netProfit = totalRevenue - totalCosts;
+    const roi = ((netProfit / (scenarioParams.initialInvestment || 1)) * 100);
+    const profitMargin = ((netProfit / totalRevenue) * 100);
+    
+    setLocalResults({
+      ...results,
+      total_revenue: totalRevenue,
+      total_costs: totalCosts,
+      net_profit: netProfit,
+      roi,
+      profit_margin: profitMargin,
+    });
+  };
 
   // Prepare time-series projection data (simulated 12-month projection)
   const projectionData = Array.from({ length: 12 }, (_, i) => {
@@ -182,10 +217,24 @@ const SimulationDetail = () => {
             Back to Dashboard
           </Button>
           
-          <Button onClick={exportToPDF} disabled={exporting}>
-            <Download className="w-4 h-4 mr-2" />
-            {exporting ? "Exporting..." : "Export PDF"}
-          </Button>
+          <div className="flex gap-2">
+            <ShareSimulationDialog 
+              simulationId={simulation.id} 
+              simulationName={simulation.business_model} 
+            />
+            <VersionHistoryDialog 
+              simulationId={simulation.id} 
+              onRestore={handleVersionRestore}
+            />
+            <ABTestDialog 
+              businessModel={simulation.business_model}
+              baseParameters={parameters}
+            />
+            <Button onClick={exportToPDF} disabled={exporting}>
+              <Download className="w-4 h-4 mr-2" />
+              {exporting ? "Exporting..." : "Export PDF"}
+            </Button>
+          </div>
         </div>
 
         <div ref={reportRef}>
@@ -387,6 +436,15 @@ const SimulationDetail = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Scenario Planning */}
+        <div className="mt-8">
+          <ScenarioPlanner
+            simulationId={simulation.id}
+            baseParameters={parameters}
+            onRunScenario={handleScenarioRun}
+          />
+        </div>
         </div>
       </div>
     </div>

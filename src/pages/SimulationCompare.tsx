@@ -29,6 +29,40 @@ const SimulationCompare = () => {
 
   const fetchSimulations = async () => {
     const ids = searchParams.get("ids")?.split(",") || [];
+    const testId = searchParams.get("testId");
+    
+    // Handle A/B test
+    if (testId) {
+      try {
+        const { data: testData, error: testError } = await supabase
+          .from("ab_tests")
+          .select("*")
+          .eq("id", testId)
+          .single();
+
+        if (testError) throw testError;
+        
+        // Run simulations for each variation
+        const variations = testData.variations as any[];
+        const variationSims = variations.map((variation: any) => ({
+          id: `${testId}-${variation.name}`,
+          business_model: `${testData.business_model} - ${variation.name}`,
+          parameters: variation.parameters,
+          results: calculateResults(variation.parameters),
+          created_at: testData.created_at,
+        }));
+        
+        setSimulations(variationSims);
+        setLoading(false);
+        return;
+      } catch (error: any) {
+        toast({
+          title: "Error loading A/B test",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    }
     
     if (ids.length < 2) {
       toast({
@@ -57,6 +91,22 @@ const SimulationCompare = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateResults = (params: any) => {
+    const totalRevenue = (params.monthlyRevenue || 100000) * 12;
+    const totalCosts = (params.productionCost || 50000) * 12;
+    const netProfit = totalRevenue - totalCosts;
+    const roi = ((netProfit / (params.initialInvestment || 1)) * 100);
+    const profitMargin = ((netProfit / totalRevenue) * 100);
+    
+    return {
+      total_revenue: totalRevenue,
+      total_costs: totalCosts,
+      net_profit: netProfit,
+      roi,
+      profit_margin: profitMargin,
+    };
   };
 
   if (loading) {
